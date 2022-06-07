@@ -42,6 +42,7 @@ function authenticateToken(request, response, next) {
     response.send("Invalid JWT Token");
   } else {
     jwt.verify(jwtToken, "Srihari143@", async (error, payload) => {
+      console.log(payload);
       if (error) {
         response.status(401);
         response.send("Invalid JWT Token");
@@ -102,5 +103,162 @@ app.post("/login/", async (request, response) => {
       response.status(400);
       response.send("Invalid password");
     }
+  }
+});
+
+//User Following API
+
+app.get("/user/tweets/feed/", authenticateToken, async (request, response) => {
+  const userTweetQuery = `
+    SELECT
+      user.username,
+      tweet.tweet,
+      tweet.date_time
+    FROM user 
+    INNER JOIN follower
+    ON user.user_id = follower.follower_id
+    INNER JOIN tweet
+    ON follower.following_user_id = tweet.user_id
+    LIMIT 4;
+    `;
+  const tweets = await database.all(userTweetQuery);
+  response.send(tweets);
+});
+
+module.exports = app;
+
+//user follows API
+
+app.get("/user/following/", authenticateToken, async (request, response) => {
+  const userFollowsQuery = `
+    SELECT
+    user.name
+    FROM
+    user 
+    INNER JOIN follower
+    ON user.user_id = follower.follower_user_id;
+    `;
+  const userFollows = await database.all(userFollowsQuery);
+  response.send(userFollows);
+});
+
+//user follows API
+
+app.get("/user/followers/", authenticateToken, async (request, response) => {
+  console.log(payload);
+  const userFollowsQuery = `
+    SELECT
+    user.name
+    FROM
+    user 
+    INNER JOIN follower
+    ON user.user_id = follower.following_user_id;
+    `;
+  const userFollowers = await database.all(userFollowsQuery);
+  response.send(userFollowers);
+});
+
+//getting Tweet API
+
+app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
+  const { tweetId } = request.params;
+  const tweetQuery = `
+    SELECT
+    *
+    FROM
+    tweet
+    WHERE
+    tweet_id = ${tweetId};
+    `;
+  const tweet = await database.get(tweetQuery);
+  if (tweet !== undefined) {
+    response.send(tweet);
+  } else {
+    response.status(401);
+    response.send("Invalid Request");
+  }
+});
+
+//getting Tweet likes API
+
+app.get(
+  "/tweets/:tweetId/likes/",
+  authenticateToken,
+  async (request, response) => {
+    const { tweetId } = request.params;
+    const tweetQuery = `
+    SELECT
+    user.name
+    FROM user 
+    INNER JOIN follower
+    ON user.user_id = likes.user_id
+    WHERE
+    tweet_id = ${tweetId};
+    `;
+    const tweetLikes = await database.all(tweetQuery);
+    if (tweet !== undefined) {
+      response.send(tweetLikes);
+    } else {
+      response.status(401);
+      response.send("Invalid Request");
+    }
+  }
+);
+
+//getting Tweet replies API
+
+app.get(
+  "/tweets/:tweetId/replies/",
+  authenticateToken,
+  async (request, response) => {
+    const { tweetId } = request.params;
+    const tweetQuery = `
+    SELECT
+    user.name
+    FROM user 
+    INNER JOIN follower
+    ON user.user_id = reply.user_id
+    WHERE
+    tweet_id = ${tweetId};
+    `;
+    const tweetReplies = await database.all(tweetQuery);
+    if (tweet !== undefined) {
+      response.send(tweetReplies);
+    } else {
+      response.status(401);
+      response.send("Invalid Request");
+    }
+  }
+);
+
+// user tweets API
+
+app.get("/user/tweets/", async (request, response) => {
+  let jwtToken;
+  const authHeader = request.headers["authorization"];
+  if (authHeader !== undefined) {
+    jwtToken = authHeader.split(" ")[1];
+  }
+  if (jwtToken === undefined) {
+    response.status(401);
+    response.send("Invalid JWT Token");
+  } else {
+    jwt.verify(jwtToken, "Srihari143@", async (error, payload) => {
+      console.log(payload);
+      if (error) {
+        response.status(401);
+        response.send("Invalid JWT Token");
+      } else {
+        const { username } = payload;
+        const userQuery = `SELECT * FROM user WHERE username = "${username}";`;
+        const userData = await database.get(userQuery);
+        console.log(userData);
+        const tweetsQuery = `
+        SELECT
+        tweet.tweet
+        SUM()
+        `;
+      }
+    });
   }
 });
